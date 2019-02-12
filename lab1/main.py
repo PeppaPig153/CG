@@ -16,6 +16,7 @@ verticies = (
     (-0.6, 0.6, 0, 100, 0)
 )
 
+
 #GL_POINTS
 def draw_points():
     glClear(GL_COLOR_BUFFER_BIT)
