@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QComboBox, QSlider
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QComboBox, QSlider, QLabel
 from PyQt5.QtOpenGL import QGLWidget, QGLFormat, QGL
 import OpenGL.GL as gl
 
@@ -119,33 +119,48 @@ class MainWindow(QMainWindow):
 		self.setCentralWidget(centralWidget)
 		self.glWidget = GLWidget(self)
 
+		self.TestLabel = QLabel('Test', parent=centralWidget)
+		self.TestLabel.move(canvas_width + 10, 10)
+
 		self.comboBoxTest = QComboBox(centralWidget)
-		self.comboBoxTest.move(canvas_width + 10, 10)
+		self.comboBoxTest.move(canvas_width + 10, 30)
 		self.comboBoxTest.resize(widget_width, self.comboBoxTest.height())
 		for item in test_options:
 			self.comboBoxTest.addItem(item)
 		self.comboBoxTest.currentTextChanged.connect(self.change_test_opt)
 
+		self.FuncLabel = QLabel('Func parapeter', parent=centralWidget)
+		self.FuncLabel.move(canvas_width + 10, 60)
+
 		self.comboBoxFunc = QComboBox(centralWidget)
-		self.comboBoxFunc.move(canvas_width + 10, 40)
+		self.comboBoxFunc.move(canvas_width + 10, 80)
 		self.comboBoxFunc.resize(widget_width, self.comboBoxFunc.height())
 		for item in func_options:
 			self.comboBoxFunc.addItem(item)
 		self.comboBoxFunc.currentTextChanged.connect(self.change_func_opt)
 
+		self.SFactorLabel = QLabel('Sfactor parapeter', parent=centralWidget)
+		self.SFactorLabel.move(canvas_width + 10, 60)
+
 		self.comboBoxSFactor = QComboBox(centralWidget)
-		self.comboBoxSFactor.move(canvas_width + 10, 70)
+		self.comboBoxSFactor.move(canvas_width + 10, 80)
 		self.comboBoxSFactor.resize(widget_width, self.comboBoxSFactor.height())
 		for item in sfactor_options:
 			self.comboBoxSFactor.addItem(item)
 		self.comboBoxSFactor.currentTextChanged.connect(self.change_sfactor_opt)
 
+		self.DFactorLabel = QLabel('Dfactor parapeter', parent=centralWidget)
+		self.DFactorLabel.move(canvas_width + 10, 110)
+
 		self.comboBoxDFactor = QComboBox(centralWidget)
-		self.comboBoxDFactor.move(canvas_width + 10, 100)
+		self.comboBoxDFactor.move(canvas_width + 10, 130)
 		self.comboBoxDFactor.resize(widget_width, self.comboBoxDFactor.height())
 		for item in dfactor_options:
 			self.comboBoxDFactor.addItem(item)
 		self.comboBoxDFactor.currentTextChanged.connect(self.change_dfactor_opt)
+
+		self.RefLabel = QLabel('Ref parapeter', parent=centralWidget)
+		self.RefLabel.move(canvas_width + 10, 110)
 
 		self.sliderRef = QSlider(Qt.Horizontal, parent=centralWidget)
 		self.sliderRef.setFocusPolicy(Qt.StrongFocus)
@@ -153,11 +168,48 @@ class MainWindow(QMainWindow):
 		self.sliderRef.resize(widget_width, self.sliderRef.height())
 		self.sliderRef.valueChanged.connect(self.change_ref_opt)
 
-		self.setWindowTitle("lab_1")
+
+		self.FuncLabel.hide()
+		self.comboBoxFunc.hide()
+		self.SFactorLabel.hide()
+		self.comboBoxSFactor.hide()
+		self.DFactorLabel.hide()
+		self.comboBoxDFactor.hide()
+		self.RefLabel.hide()
+		self.sliderRef.hide()
+
+		self.setWindowTitle("lab_2")
 		self.resize(window_width, window_height)
 
 	def change_test_opt(self, opt):
 		self.glWidget.update_test_optin(test_options[opt])
+		if opt == 'GL_SCISSOR_TEST':
+			self.FuncLabel.hide()
+			self.comboBoxFunc.hide()
+			self.SFactorLabel.hide()
+			self.comboBoxSFactor.hide()
+			self.DFactorLabel.hide()
+			self.comboBoxDFactor.hide()
+			self.RefLabel.hide()
+			self.sliderRef.hide()
+		elif opt == 'GL_ALPHA_TEST':
+			self.FuncLabel.show()
+			self.comboBoxFunc.show()
+			self.SFactorLabel.hide()
+			self.comboBoxSFactor.hide()
+			self.DFactorLabel.hide()
+			self.comboBoxDFactor.hide()
+			self.RefLabel.show()
+			self.sliderRef.show()
+		elif opt == 'GL_BLEND':
+			self.FuncLabel.hide()
+			self.comboBoxFunc.hide()
+			self.SFactorLabel.show()
+			self.comboBoxSFactor.show()
+			self.DFactorLabel.show()
+			self.comboBoxDFactor.show()
+			self.RefLabel.hide()
+			self.sliderRef.hide()
 		self.glWidget.update()
 
 	def change_func_opt(self, opt):
@@ -173,7 +225,7 @@ class MainWindow(QMainWindow):
 		self.glWidget.update()
 
 	def change_ref_opt(self, opt):
-		self.glWidget.update_ref_optin(opt / 100)
+		self.glWidget.update_ref_optin(opt / 99)
 		self.glWidget.update()
 
 if __name__ == '__main__':
