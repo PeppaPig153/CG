@@ -95,7 +95,7 @@ def draw():
 
 def reshape_window(w, h):
     global width
-    global heigth
+    global height
     width = w
     height = h
 
