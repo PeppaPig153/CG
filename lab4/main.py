@@ -68,6 +68,8 @@ def Hermite_interpolation(t):
     G = np.vstack(points).transpose()
     return G.dot(M).dot(T) # R(t)=GMT
 
+
+
 def draw():
     glClear(GL_COLOR_BUFFER_BIT)
     glLineWidth(1)
@@ -91,6 +93,11 @@ def draw():
     glEnd()
     glFlush()
 
+def reshape_window(w, h):
+    global width
+    global heigth
+    width = w
+    height = h
 
 if __name__ == '__main__':
     glutInit()
@@ -101,5 +108,6 @@ if __name__ == '__main__':
     glutDisplayFunc(draw)
     glutMotionFunc(mouse_move)
     glutMouseFunc(mouse_click)
+    glutReshapeFunc(reshape_window)
     glClearColor(1,1,1,1)
     glutMainLoop()
