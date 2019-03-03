@@ -3,7 +3,7 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 import numpy as np
 
-width, height = 400, 400
+width, height = 600, 600
 
 Number_of_points = 500
 
@@ -72,7 +72,7 @@ def Hermite_interpolation(t):
 
 def draw():
     glClear(GL_COLOR_BUFFER_BIT)
-    glLineWidth(1)
+    glLineWidth(2)
     pts = np.arange(0, 1, 1 / Number_of_points)
     glBegin(GL_LINE_STRIP)
     for t in pts:
