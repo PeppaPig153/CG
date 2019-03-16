@@ -1,78 +1,76 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
-from OpenGL.GLU import *
-import numpy as np
-import math
 
-width, height = 600, 600
+pointcolor = [[244 / 255, 164 / 255, 96 / 255], [244 / 255, 164 / 255, 96 / 255], [244 / 255, 164 / 255, 96 / 255]]
+pointdata = [[0.5, 0, 0.5], [0.5, 0, -0.5], [-0.5, 0, -0.5]] # Определяем массив вершин (три вершины по три координаты)
 
-w=90
-h=60
-
-triangle=(
-    (0.5, 1, 0.5),
-    (0.5, 1, -0.5),
-    (-0.5, 1, -0.5),
-    (0.5, 1, 0.5),
-    (-0.5, 1, 0.5),
-    (-0.5, 1, -0.5),
-    )
+# Процедура обработки специальных клавиш
+def specialkeys(key, x, y):
+    # Обработчики специальных клавиш
+    if key == GLUT_KEY_UP:          # Клавиша вверх
+        glRotatef(5, 1, 0, 0)       # Вращаем на 5 градусов по оси X
+    if key == GLUT_KEY_DOWN:        # Клавиша вниз
+        glRotatef(-5, 1, 0, 0)      # Вращаем на -5 градусов по оси X
+    if key == GLUT_KEY_LEFT:        # Клавиша влево
+        glRotatef(5, 0, 1, 0)       # Вращаем на 5 градусов по оси Y
+    if key == GLUT_KEY_RIGHT:       # Клавиша вправо
+        glRotatef(-5, 0, 1, 0)      # Вращаем на -5 градусов по оси Y
 
 
-def camera(x, y, z):
-    # поворот относительно оси z
-    angle=math.radians(-10)
-    rotation_matrix_z=[[math.cos(angle), -math.sin(angle), 0],
-                     [math.sin(angle), math.cos(angle), 0],
-                     [0, 0, 1]]
-    new_coordinates = np.dot(rotation_matrix_z, [[x], [z], [y]]) # ось y поменяна с z
-
-    return new_coordinates[0], new_coordinates[1], new_coordinates[2]
+# Процедура подготовки шейдера (тип шейдера, текст шейдера)
+def create_shader(shader_type, source):
+    shader = glCreateShader(shader_type) # Создаем пустой объект шейдера
+    glShaderSource(shader, source) # Привязываем текст шейдера к пустому объекту шейдера
+    glCompileShader(shader)  # Компилируем шейдер
+    return shader  # Возвращаем созданный шейдер
 
 
-
+# Процедура перерисовки
 def draw():
-    glClear(GL_COLOR_BUFFER_BIT)
-
-    glBegin(GL_LINES)
-    #ось x
-    glColor3f(1., 0., 0.)
-    x, y, z = camera(1, 0, 0)
-    glVertex3f(x, y, z)
-    x, y, z = camera(-1, 0, 0)
-    glVertex3f(x, y, z)
-    # ось y
-    glColor3f(0., 1., 0.)
-    x, y, z = camera(0, 1, 0)
-    glVertex3f(x, y, z)
-    x, y, z = camera(0, -1, 0)
-    glVertex3f(x, y, z)
-    # ось z
-    glColor3f(0., 0., 1.)
-    x, y, z = camera(0, 0, 1)
-    glVertex3f(x, y, z)
-    x, y, z = camera(0, 0, -1)
-    glVertex3f(x, y, z)
-    glEnd()
-
-    glLineWidth(2)
-    glColor3f(244 / 255, 164 / 255, 96 / 255)
-    glBegin(GL_TRIANGLES)
-    for i in range(h):
-        for j in range(w):
-            for point in triangle:
-                x, y, z = camera((point[0]/w)*j, point[1], (point[2]/w)*i)
-                glVertex3f(x, y, z)
-    glEnd()
-    glFlush()
+    glClear(GL_COLOR_BUFFER_BIT)  # Очищаем экран и заливаем серым цветом
+    glEnableClientState(GL_VERTEX_ARRAY)  # Включаем использование массива вершин
+    glEnableClientState(GL_COLOR_ARRAY)    # Включаем использование массива цветов
+    glVertexPointer(3, GL_FLOAT, 0, pointdata)
+    glColorPointer(3, GL_FLOAT, 0, pointcolor)
+    glDrawArrays(GL_TRIANGLES, 0, 3)
+    glDisableClientState(GL_VERTEX_ARRAY)           # Отключаем использование массива вершин
+    glDisableClientState(GL_COLOR_ARRAY)            # Отключаем использование массива цветов
+    glutSwapBuffers()                               # Выводим все нарисованное в памяти на экран
 
 
-if __name__ == '__main__':
-    glutInit()
-    glutInitDisplayMode(GLUT_RGBA)
-    glutInitWindowSize(width, height)
-    glutInitWindowPosition(200, 200)
-    window = glutCreateWindow("Lab_5")
-    glutDisplayFunc(draw)
-    glClearColor(1,1,1,1)
-    glutMainLoop()
+
+# Здесь начинется выполнение программы
+glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB) # Использовать двойную буферезацию и цвета в формате RGB (Красный Синий Зеленый)
+glutInitWindowSize(500, 500) # Указываем начальный размер окна (ширина, высота)
+glutInitWindowPosition(500, 200) # Указываем начальное положение окна относительно левого верхнего угла экрана
+glutInit(sys.argv) # Инициализация OpenGl
+glutCreateWindow("lab_5") # Создаем окно с заголовком
+glutDisplayFunc(draw) # Определяем процедуру, отвечающую за перерисовку
+glutIdleFunc(draw) # Определяем процедуру, выполняющуюся при "простое" программы
+glutSpecialFunc(specialkeys) # Определяем процедуру, отвечающую за обработку клавиш
+glClearColor(1., 1., 1., 1) # Задаем серый цвет для очистки экрана
+
+# Создаем вершинный шейдер:
+# Положение вершин не меняется
+# Цвет вершины - такой же как и в массиве цветов
+vertex = create_shader(GL_VERTEX_SHADER, """
+varying vec4 vertex_color;
+            void main(){
+                gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+                vertex_color = gl_Color;
+            }""")
+
+# Создаем фрагментный шейдер:
+# Определяет цвет каждого фрагмента как "смешанный" цвет его вершин
+fragment = create_shader(GL_FRAGMENT_SHADER, """
+varying vec4 vertex_color;
+            void main() {
+                gl_FragColor = vertex_color;
+}""")
+
+program = glCreateProgram() # Создаем пустой объект шейдерной программы
+glAttachShader(program, vertex) # Приcоединяем вершинный шейдер к программе
+glAttachShader(program, fragment) # Присоединяем фрагментный шейдер к программе
+glLinkProgram(program) # "Собираем" шейдерную программу
+glUseProgram(program) # Сообщаем OpenGL о необходимости использовать данную шейдерну программу при отрисовке объектов
+glutMainLoop() # Запускаем основной цикл
