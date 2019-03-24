@@ -4,14 +4,14 @@ from OpenGL.GLUT import *
 w = 50
 h = 50
 
-color = [[70/255, 130/255, 180/255],[70/255, 130/255, 180/255], [70/255, 130/255, 180/255]]
+color = [[135/255, 206/255, 235/255],[135/255, 206/255, 235/255], [135/255, 206/255, 235/255]]
 
 pointdata = []
 pointcolor = []
 
 # параметры
 draw_axis = True
-
+draw_invisible_edge = True
 
 # формирует массивы данных для отображения
 def create_data():
@@ -53,7 +53,10 @@ def create_shader(shader_type, source):
 # Процедура перерисовки
 def draw():
 	global program
-	glClear(GL_COLOR_BUFFER_BIT)  # Очищаем экран и заливаем серым цветом
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # Очищаем экран и заливаем серым цветом
+	if(draw_invisible_edge):
+		glEnable(GL_DEPTH_TEST)
+		#glDepthFunc(GL_LESS)
 	glDrawArrays(GL_LINE_STRIP, 0, 6 * w * h)
 	glBegin(GL_LINES)
 	if(draw_axis): # прорисовка осей
@@ -70,6 +73,8 @@ def draw():
 		glVertex3f(0., 0., 0.)
 		glVertex3f(0., 0., 1.)
 	glEnd()
+	if (draw_invisible_edge):
+		glDisable(GL_DEPTH_TEST)
 	glutSwapBuffers()  # Выводим все нарисованное в памяти на экран
 
 # Здесь начинется выполнение программы
