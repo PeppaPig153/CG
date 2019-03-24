@@ -1,5 +1,6 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
+
 w = 1
 h = 2
 
@@ -10,6 +11,9 @@ triangles = [[[0.5, 0, 0.5], [0.5, 0, -0.5], [-0.5, 0, -0.5]],
 
 pointdata = []
 pointcolor = []
+
+#параметры
+draw_axis = False
 
 # формирует массивы данных для отображения
 def create_data():
@@ -29,13 +33,13 @@ def create_data():
 			for k in range(2):
 				pointcolor.append(color)
 
-	for k in range(3):
+	"""for k in range(3):
 		tmp = [0., 0., 0.]
 		tmp[k] = 1.0
 		pointdata.append([0., 0., 0.])
 		pointdata.append(tmp)
 		pointdata.append([0., 0., 0.])
-		pointcolor.append([tmp, tmp, tmp])
+		pointcolor.append([tmp, tmp, tmp])"""
 
 
 def specialkeys(key, x, y):
@@ -63,17 +67,23 @@ def create_shader(shader_type, source):
 def draw():
 	global program
 	glClear(GL_COLOR_BUFFER_BIT)  # Очищаем экран и заливаем серым цветом
-	glEnableClientState(GL_VERTEX_ARRAY)  # Включаем использование массива вершин
-	glEnableClientState(GL_COLOR_ARRAY)	# Включаем использование массива цветов
-
-	glVertexPointer(3, GL_FLOAT, 0, pointdata)
-	glColorPointer(3, GL_FLOAT, 0, pointcolor)
-	glDrawArrays(GL_LINE_STRIP, 0, 6*w*h+9)
-
-	glDisableClientState(GL_VERTEX_ARRAY) # Отключаем использование массива вершин
-	glDisableClientState(GL_COLOR_ARRAY)  # Отключаем использование массива цветов
+	glDrawArrays(GL_LINE_STRIP, 0, 6 * w * h)
+	glBegin(GL_LINES)
+	if(draw_axis): # прорисовка осей
+		#x
+		glColor3f(1., 0., 0.)
+		glVertex3f(0., 0., 0.)
+		glVertex3f(1., 0., 0.)
+		#y
+		glColor3f(0., 1., 0.)
+		glVertex3f(0., 0., 0.)
+		glVertex3f(0., 1., 0.)
+		#z
+		glColor3f(0., 0., 1.)
+		glVertex3f(0., 0., 0.)
+		glVertex3f(0., 0., 1.)
+	glEnd()
 	glutSwapBuffers()  # Выводим все нарисованное в памяти на экран
-
 
 # Здесь начинется выполнение программы
 glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB) # Использовать двойную буферезацию и цвета в формате RGB (Красный Синий Зеленый)
@@ -106,4 +116,8 @@ glAttachShader(program, vertex) # Приcоединяем вершинный ш�
 glAttachShader(program, fragment) # Присоединяем фрагментный шейдер к программе
 glLinkProgram(program) # "Собираем" шейдерную программу
 glUseProgram(program) # Сообщаем OpenGL о необходимости использовать данную шейдерну программу при отрисовке объектов
+glEnableClientState(GL_VERTEX_ARRAY)  # Включаем использование массива вершин
+glEnableClientState(GL_COLOR_ARRAY)	# Включаем использование массива цветов
+glVertexPointer(3, GL_FLOAT, 0, pointdata)
+glColorPointer(3, GL_FLOAT, 0, pointcolor)
 glutMainLoop() # Запускаем основной цикл
