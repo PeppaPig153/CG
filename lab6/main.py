@@ -1,46 +1,33 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 
-w = 1
-h = 2
+w = 50
+h = 50
 
-color = [[244 / 255, 164 / 255, 96 / 255], [244 / 255, 164 / 255, 96 / 255], [244 / 255, 164 / 255, 96 / 255]]
-
-triangles = [[[0.5, 0, 0.5], [0.5, 0, -0.5], [-0.5, 0, -0.5]],
-			 [[0.5, 0, 0.5], [-0.5, 0, 0.5], [-0.5, 0, -0.5]]]
+color = [[70/255, 130/255, 180/255],[70/255, 130/255, 180/255], [70/255, 130/255, 180/255]]
 
 pointdata = []
 pointcolor = []
 
-#параметры
-draw_axis = False
+# параметры
+draw_axis = True
+
 
 # формирует массивы данных для отображения
 def create_data():
 	global pointdata
 	global pointcolor
-	import random
 
-	random.seed(5)
 	for i in range(h): # по высоте
 		for j in range(w): # по ширине
-			pointdata.append([i/h-0.5, 0, j/w-0.5])
-			pointdata.append([(i+1)/h-0.5, 0, j/w-0.5])
-			pointdata.append([(i+1)/h-0.5, 0, (j+1)/w-0.5])
-			pointdata.append([i/h-0.5, 0, j/w-0.5])
-			pointdata.append([i/h-0.5, 0, (j+1)/w-0.5])
-			pointdata.append([(i+1)/h-0.5, 0, (j+1)/w-0.5])
+			pointdata.append([i/h-0.5, j/w-0.5, 0])
+			pointdata.append([(i+1)/h-0.5, j/w-0.5, 0])
+			pointdata.append([(i+1)/h-0.5, (j+1)/w-0.5, 0])
+			pointdata.append([i/h-0.5, j/w-0.5, 0])
+			pointdata.append([i/h-0.5, (j+1)/w-0.5, 0])
+			pointdata.append([(i+1)/h-0.5, (j+1)/w-0.5, 0])
 			for k in range(2):
 				pointcolor.append(color)
-
-	"""for k in range(3):
-		tmp = [0., 0., 0.]
-		tmp[k] = 1.0
-		pointdata.append([0., 0., 0.])
-		pointdata.append(tmp)
-		pointdata.append([0., 0., 0.])
-		pointcolor.append([tmp, tmp, tmp])"""
-
 
 def specialkeys(key, x, y):
 	# Обработчики специальных клавиш
@@ -101,7 +88,9 @@ create_data()
 vertex = create_shader(GL_VERTEX_SHADER, """
 varying vec4 vertex_color;
             void main(){
-                gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+                vec4 point = gl_Vertex;
+				point.z = sin((point.x*point.x+point.y*point.y)*50.0)/30.0;
+				gl_Position = gl_ModelViewProjectionMatrix * point;
                 vertex_color = gl_Color;
             }""")
 # Создаем фрагментный шейдер:
