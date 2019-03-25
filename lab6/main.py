@@ -1,17 +1,17 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 
-w = 50
-h = 50
-
 color = [[135/255, 206/255, 235/255],[135/255, 206/255, 235/255], [135/255, 206/255, 235/255]]
 
 pointdata = []
 pointcolor = []
 
 # параметры
-draw_axis = True
-draw_invisible_edge = True
+w = 50 # ширина
+h = 50 # высота
+draw_axis = True # прорисовка осей
+draw_invisible_edge = True # прорисовка невидимых граней
+transparent = True # прозрачная прорисовка
 
 # формирует массивы данных для отображения
 def create_data():
@@ -54,10 +54,15 @@ def create_shader(shader_type, source):
 def draw():
 	global program
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # Очищаем экран и заливаем серым цветом
-	if(draw_invisible_edge):
+	if(transparent):
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
+	else:
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+	if(not draw_invisible_edge):
 		glEnable(GL_DEPTH_TEST)
 		#glDepthFunc(GL_LESS)
-	glDrawArrays(GL_LINE_STRIP, 0, 6 * w * h)
+
+	glDrawArrays(GL_TRIANGLES, 0, 6 * w * h)
 	glBegin(GL_LINES)
 	if(draw_axis): # прорисовка осей
 		#x
