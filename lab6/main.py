@@ -94,7 +94,12 @@ vertex = create_shader(GL_VERTEX_SHADER, """
 varying vec4 vertex_color;
             void main(){
                 vec4 point = gl_Vertex;
-				point.z = sin((point.x*point.x+point.y*point.y)*50.0)/30.0;
+                if((point.x+point.y+point.z)==1.0 && (point.x==1.0 || point.y==1.0 || point.z==1.0)){
+					point.z=point.z;
+				}
+				else {
+					point.z = sin((point.x*point.x+point.y*point.y)*50.0)/30.0;
+				}
 				gl_Position = gl_ModelViewProjectionMatrix * point;
                 vertex_color = gl_Color;
             }""")
