@@ -1,10 +1,9 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 
-color = [[135/255, 206/255, 235/255],[135/255, 206/255, 235/255], [135/255, 206/255, 235/255]]
+color = [135/255, 206/255, 235/255]
 
 pointdata = []
-pointcolor = []
 
 # параметры
 w = 50 # ширина
@@ -12,22 +11,25 @@ h = 50 # высота
 draw_axis = True # прорисовка осей
 draw_invisible_edge = True # прорисовка невидимых граней
 transparent = True # прозрачная прорисовка
+centre = [0., 0., 0.] # координаты центра
 
 # формирует массивы данных для отображения
 def create_data():
 	global pointdata
-	global pointcolor
+
+	X=centre[0]
+	Y=centre[1]
+	Z=centre[2]
 
 	for i in range(h): # по высоте
 		for j in range(w): # по ширине
-			pointdata.append([i/h-0.5, j/w-0.5, 0])
-			pointdata.append([(i+1)/h-0.5, j/w-0.5, 0])
-			pointdata.append([(i+1)/h-0.5, (j+1)/w-0.5, 0])
-			pointdata.append([i/h-0.5, j/w-0.5, 0])
-			pointdata.append([i/h-0.5, (j+1)/w-0.5, 0])
-			pointdata.append([(i+1)/h-0.5, (j+1)/w-0.5, 0])
-			for k in range(2):
-				pointcolor.append(color)
+			pointdata.append([[i/h-0.5+X, j/w-0.5+Y, 0+Z],
+							  [(i+1)/h-0.5+X, j/w-0.5+Y, 0+Z],
+							  [(i+1)/h-0.5+X, (j+1)/w-0.5+Y, 0+Z]])
+			pointdata.append([[i/h-0.5+X, j/w-0.5+Y, 0+Z],
+							  [i/h-0.5+X, (j+1)/w-0.5+Y, 0+Z],
+							  [(i+1)/h-0.5+X, (j+1)/w-0.5+Y, 0+Z]])
+
 
 def specialkeys(key, x, y):
 	# Обработчики специальных клавиш
@@ -62,21 +64,26 @@ def draw():
 		glEnable(GL_DEPTH_TEST)
 		#glDepthFunc(GL_LESS)
 
-	glDrawArrays(GL_TRIANGLES, 0, 6 * w * h)
+	glBegin(GL_TRIANGLES) # прорисовка треугольников
+	for triangle in pointdata:
+		glColor3f(color[0], color[1], color[2])
+		for point in triangle:
+			glVertex3f(point[0], point[1], point[2])
+	glEnd()
 	glBegin(GL_LINES)
 	if(draw_axis): # прорисовка осей
 		#x
 		glColor3f(1., 0., 0.)
-		glVertex3f(0., 0., 0.)
-		glVertex3f(1., 0., 0.)
+		glVertex4f(0., 0., 0., 1.)
+		glVertex4f(1., 0., 0., 1.)
 		#y
 		glColor3f(0., 1., 0.)
-		glVertex3f(0., 0., 0.)
-		glVertex3f(0., 1., 0.)
+		glVertex4f(0., 0., 0., 1.)
+		glVertex4f(0., 1., 0., 1.)
 		#z
 		glColor3f(0., 0., 1.)
-		glVertex3f(0., 0., 0.)
-		glVertex3f(0., 0., 1.)
+		glVertex4f(0., 0., 0., 1.)
+		glVertex4f(0., 0., 1., 1.)
 	glEnd()
 	if (draw_invisible_edge):
 		glDisable(GL_DEPTH_TEST)
@@ -103,7 +110,7 @@ varying vec4 vertex_color;
 					point.z=point.z;
 				}
 				else {
-					point.z = sin((point.x*point.x+point.y*point.y)*50.0)/30.0;
+					point.z = point.z+sin((point.x*point.x+point.y*point.y)*50.0)/30.0;
 				}
 				gl_Position = gl_ModelViewProjectionMatrix * point;
                 vertex_color = gl_Color;
@@ -122,6 +129,4 @@ glLinkProgram(program) # "Собираем" шейдерную программ�
 glUseProgram(program) # Сообщаем OpenGL о необходимости использовать данную шейдерну программу при отрисовке объектов
 glEnableClientState(GL_VERTEX_ARRAY)  # Включаем использование массива вершин
 glEnableClientState(GL_COLOR_ARRAY)	# Включаем использование массива цветов
-glVertexPointer(3, GL_FLOAT, 0, pointdata)
-glColorPointer(3, GL_FLOAT, 0, pointcolor)
 glutMainLoop() # Запускаем основной цикл
