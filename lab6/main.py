@@ -60,7 +60,7 @@ def specialkeys(key, x, y):
 			new_coordinates = np.dot(rotation_matrix, point)
 			for i in range(3):
 				point[i]=new_coordinates[i]
-	glutPostRedisplay()
+	#glutPostRedisplay()
 
 
 # Процедура подготовки шейдера (тип шейдера, текст шейдера)
