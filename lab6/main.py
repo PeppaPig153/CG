@@ -1,5 +1,7 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
+import math as m
+import numpy as np
 
 color = [135/255, 206/255, 235/255]
 
@@ -34,13 +36,30 @@ def create_data():
 def specialkeys(key, x, y):
 	# Обработчики специальных клавиш
 	if key == GLUT_KEY_UP:		  # Клавиша вверх
-		glRotatef(5, 1, 0, 0)	   # Вращаем на 5 градусов по оси X
+		angle = m.radians(5)
+		rotation_matrix = [[1, 0, 0],
+						   [0, m.cos(angle), -m.sin(angle)],
+						   [0, m.sin(angle), m.cos(angle)]]
 	if key == GLUT_KEY_DOWN:		# Клавиша вниз
-		glRotatef(-5, 1, 0, 0)	  # Вращаем на -5 градусов по оси X
+		angle = m.radians(-5)
+		rotation_matrix = [[1, 0, 0],
+						   [0, m.cos(angle), -m.sin(angle)],
+						   [0, m.sin(angle), m.cos(angle)]]
 	if key == GLUT_KEY_LEFT:		# Клавиша влево
-		glRotatef(5, 0, 1, 0)	   # Вращаем на 5 градусов по оси Y
+		angle = m.radians(-5)
+		rotation_matrix = [[m.cos(angle), -m.sin(angle), 0],
+						   [m.sin(angle), m.cos(angle), 0],
+						   [0, 0, 1]]
 	if key == GLUT_KEY_RIGHT:	   # Клавиша вправо
-		glRotatef(-5, 0, 1, 0)	  # Вращаем на -5 градусов по оси Y
+		angle = m.radians(5)
+		rotation_matrix = [[m.cos(angle), -m.sin(angle), 0],
+						   [m.sin(angle), m.cos(angle), 0],
+						   [0, 0, 1]]
+	for triangle in pointdata:
+		for point in triangle:
+			new_coordinates = np.dot(rotation_matrix, point)
+			for i in range(3):
+				point[i]=new_coordinates[i]
 	glutPostRedisplay()
 
 
