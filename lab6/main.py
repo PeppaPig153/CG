@@ -4,7 +4,6 @@ import math as m
 import numpy as np
 
 
-
 pointdata = []
 
 # параметры
@@ -17,6 +16,7 @@ transparent = False # прозрачная прорисовка
 centre = [0., 0., 0.] # координаты центра
 lightPos = [0., 0., 1.] # координаты источника света
 lightColor = [1., 1., 1.] # цвет света
+lightStrength = 0.1 # яркость света
 
 
 def define_normal(point_1, point_2, point_3):
@@ -26,6 +26,9 @@ def define_normal(point_1, point_2, point_3):
 		(point_2[0] - point_1[0]) * (point_3[1] - point_1[1]) - (point_2[1] - point_1[1]) * (point_3[0] - point_1[0]),
 	]
 	length=m.sqrt(norm[0]*norm[0]+norm[1]*norm[1]+norm[2]*norm[2])
+	a = [point_1[0] - lightPos[0], point_1[1] - lightPos[1], point_1[2] - lightPos[2]]
+	if ((a[0] * norm[1] + a[1] * norm[1] + a[2] * norm[2]) > 0):
+		length=-length
 	for i in range(3):
 		norm[i]=norm[i]/length
 	return norm
@@ -50,8 +53,8 @@ def create_data():
 			pointdata.append([point_1+norm, point_2+norm, point_3+norm])
 
 			point_1 = define_coordinates(i/h-0.5, j/w-0.5, 0)
+			point_2 = define_coordinates((i + 1) / h - 0.5, (j + 1) / w - 0.5, 0)
 			point_3 = define_coordinates(i/h-0.5, (j+1)/w-0.5, 0)
-			point_2 = define_coordinates((i+1)/h-0.5, (j+1)/w-0.5, 0)
 			norm = define_normal(point_1, point_2, point_3)
 			pointdata.append([point_1+norm, point_2+norm, point_3+norm])
 
@@ -96,7 +99,6 @@ def specialkeys(key, x, y):
 # Процедура подготовки шейдера (тип шейдера, текст шейдера)
 def create_shader(shader_type, source):
 	shader = glCreateShader(shader_type) # Создаем пустой объект шейдера
-	#print(shader_type, " - ", shader)
 	glShaderSource(shader, source) # Привязываем текст шейдера к пустому объекту шейдера
 	glCompileShader(shader)  # Компилируем шейдер
 	return shader  # Возвращаем созданный шейдер
@@ -112,6 +114,8 @@ def draw():
 	glUniform3f(var, lightColor[0], lightColor[1], lightColor[2])
 	var = glGetUniformLocation(program, 'objectColor')
 	glUniform3f(var, color[0], color[1], color[2])
+	var = glGetUniformLocation(program, 'lightStrength')
+	glUniform1f(var, lightStrength)
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # Очищаем экран и заливаем серым цветом
 	if(transparent):
@@ -165,14 +169,14 @@ vertex = create_shader(GL_VERTEX_SHADER, """
 uniform vec3 lightPos; 
 uniform vec3 lightColor;
 uniform vec3 objectColor;
+uniform float lightStrength;
 varying vec4 vertex_color;
             void main(){
                 vec4 point = gl_Vertex;
 				gl_Position = gl_ModelViewProjectionMatrix * point;
 				vec4 color=gl_Color;
 				if(!((point.x+point.y+point.z)==1.0 && (point.x==1.0 || point.y==1.0 || point.z==1.0))){
-					float ambientStrength = 0.1f;
-    				vec3 ambient = ambientStrength * lightColor;
+    				vec3 ambient = lightStrength * lightColor;
     				vec3 Normal = gl_Normal;
     				vec3 norm = normalize(Normal);
     				vec3 FragPos = vec3(point.x, point.y, point.z);
