@@ -17,6 +17,7 @@ centre = [0., 0., 0.] # координаты центра
 lightPos = [0., 0., 1.] # координаты источника света
 lightColor = [1., 1., 1.] # цвет света
 lightStrength = 0.1 # яркость света
+isOrtho = True # оргтогональное проецирование
 
 
 def define_normal(point_1, point_2, point_3):
@@ -26,8 +27,8 @@ def define_normal(point_1, point_2, point_3):
 		(point_2[0] - point_1[0]) * (point_3[1] - point_1[1]) - (point_2[1] - point_1[1]) * (point_3[0] - point_1[0]),
 	]
 	length=m.sqrt(norm[0]*norm[0]+norm[1]*norm[1]+norm[2]*norm[2])
-	a = [point_1[0] - lightPos[0], point_1[1] - lightPos[1], point_1[2] - lightPos[2]]
-	if ((a[0] * norm[1] + a[1] * norm[1] + a[2] * norm[2]) > 0):
+	light = [point_1[0] - lightPos[0], point_1[1] - lightPos[1], point_1[2] - lightPos[2]]
+	if (np.dot(light, norm) > 0):
 		length=-length
 	for i in range(3):
 		norm[i]=norm[i]/length
@@ -103,10 +104,8 @@ def create_shader(shader_type, source):
 	glCompileShader(shader)  # Компилируем шейдер
 	return shader  # Возвращаем созданный шейдер
 
-
 # Процедура перерисовки
 def draw():
-	global program
 	# передача параметров в шейдер
 	var = glGetUniformLocation(program, 'lightPos')
 	glUniform3f(var, lightPos[0],lightPos[1], lightPos[2])
@@ -118,23 +117,37 @@ def draw():
 	glUniform1f(var, lightStrength)
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # Очищаем экран и заливаем серым цветом
+	# прозрачность
 	if(transparent):
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 	else:
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+	# прорисовка невидимых граней
 	if(not draw_invisible_edge):
 		glEnable(GL_DEPTH_TEST)
 		#glDepthFunc(GL_LESS)
-
-	glBegin(GL_TRIANGLES) # прорисовка треугольников
+	# ортогональное и перспективное проецирование
+	glMatrixMode(GL_MODELVIEW)
+	glLoadIdentity()
+	glTranslatef(0.0, 0.0, -1.0)
+	glMatrixMode(GL_PROJECTION)
+	glLoadIdentity()
+	if (isOrtho):
+		glOrtho(-1.0, 1.0, -1, 1, 0.1, 100.0)
+	else:
+		glFrustum(-.1, .1, -.1, .1, 0.1, 100.0)
+	# glMatrixMode(GL_MODELVIEW);
+	# прорисовка треугольников
+	glBegin(GL_TRIANGLES)
 	for triangle in pointdata:
 		glColor3f(color[0], color[1], color[2])
 		for point in triangle:
 			glNormal3f(point[3], point[4], point[5])
 			glVertex3f(point[0], point[1], point[2])
 	glEnd()
+	# прорисовка осей
 	glBegin(GL_LINES)
-	if(draw_axis): # прорисовка осей
+	if(draw_axis):
 		#x
 		glColor3f(1., 0., 0.)
 		glVertex3f(0., 0., 0.)
@@ -153,16 +166,16 @@ def draw():
 	glutSwapBuffers()  # Выводим все нарисованное в памяти на экран
 
 # Здесь начинется выполнение программы
-glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB) # Использовать двойную буферезацию и цвета в формате RGB (Красный Синий Зеленый)
-glutInitWindowSize(500, 500) # Указываем начальный размер окна (ширина, высота)
-glutInitWindowPosition(500, 200) # Указываем начальное положение окна относительно левого верхнего угла экрана
-glutInit(sys.argv) # Инициализация OpenGl
-glutCreateWindow("lab_5") # Создаем окно с заголовком
-glutDisplayFunc(draw) # Определяем процедуру, отвечающую за перерисовку
-glutIdleFunc(draw) # Определяем процедуру, выполняющуюся при "простое" программы
-glutSpecialFunc(specialkeys) # Определяем процедуру, отвечающую за обработку клавиш
-glClearColor(1., 1., 1., 1) # Задаем серый цвет для очистки экрана
-
+glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB)
+glutInitWindowSize(500, 500)
+glutInitWindowPosition(500, 200)
+glutInit(sys.argv)
+glutCreateWindow("lab_6")
+glutDisplayFunc(draw)
+glutIdleFunc(draw)
+glutSpecialFunc(specialkeys)
+glClearColor(1., 1., 1., 1)
+# генерация массива точек
 create_data()
 # Создаем вершинный шейдер:
 vertex = create_shader(GL_VERTEX_SHADER, """
@@ -194,12 +207,12 @@ varying vec4 vertex_color;
             void main() {
                 gl_FragColor = vertex_color;
 }""")
-program = glCreateProgram() # Создаем пустой объект шейдерной программы
-glAttachShader(program, vertex) # Приcоединяем вершинный шейдер к программе
-glAttachShader(program, fragment) # Присоединяем фрагментный шейдер к программе
-glLinkProgram(program) # "Собираем" шейдерную программу
-glUseProgram(program) # Сообщаем OpenGL о необходимости использовать данную шейдерну программу при отрисовке объектов
-glEnableClientState(GL_VERTEX_ARRAY)  # Включаем использование массива вершин
-glEnableClientState(GL_COLOR_ARRAY)	# Включаем использование массива цветов
+program = glCreateProgram()
+glAttachShader(program, vertex)
+glAttachShader(program, fragment)
+glLinkProgram(program)
+glUseProgram(program)
+glEnableClientState(GL_VERTEX_ARRAY)
+glEnableClientState(GL_COLOR_ARRAY)
 glVertexPointer(3, GL_FLOAT, 0, pointdata)
 glutMainLoop() # Запускаем основной цикл
