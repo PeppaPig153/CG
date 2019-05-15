@@ -36,11 +36,26 @@ class Triangle:
 		self.vertex_3 = vertex_3
 		self.norm = [0., 0., 0.]
 
-	def update_triangle(self, v1, v2, v3):
+	def update_triangle(self, v1, v2, v3, norm):
 		self.vertex_1.update_vertex(v1[0], v1[1], v1[2])
 		self.vertex_2.update_vertex(v2[0], v2[1], v2[2])
 		self.vertex_3.update_vertex(v3[0], v3[1], v3[2])
-		# update norm
+		self.norm = norm
+
+	def define_normal(self):
+		norm = [
+			(self.vertex_2.y - self.vertex_1.y) * (self.vertex_3.z - self.vertex_1.z) -
+			(self.vertex_2.z - self.vertex_1.z) * (self.vertex_3.y - self.vertex_1.y),
+			(self.vertex_2.x - self.vertex_1.x) * (self.vertex_3.z - self.vertex_1.z) -
+			(self.vertex_2.z - self.vertex_1.z) * (self.vertex_3.x - self.vertex_1.x),
+			(self.vertex_2.x - self.vertex_1.x) * (self.vertex_3.y - self.vertex_1.y) -
+			(self.vertex_2.y - self.vertex_1.y) * (self.vertex_3.x - self.vertex_1.x),
+		]
+		length = m.sqrt(norm[0] * norm[0] + norm[1] * norm[1] + norm[2] * norm[2])
+		for i in range(3):
+			norm[i] = norm[i] / length
+		self.norm = norm
+
 
 class Figure:
 	def __init__(self, color):
@@ -49,6 +64,7 @@ class Figure:
 
 	def add_pointdata(self, triangle):
 		self.pointdata.append(triangle)
+
 
 
 	def generate_figure(self, v1, v2_1, v3, v2_2):
@@ -107,14 +123,15 @@ class Figure:
 		for triangle in self.pointdata:
 			triangle.update_triangle(np.dot(M, np.transpose(np.array([triangle.vertex_1.x, triangle.vertex_1.y, triangle.vertex_1.z]))),
 									 np.dot(M, np.transpose(np.array([triangle.vertex_2.x, triangle.vertex_2.y, triangle.vertex_2.z]))),
-									 np.dot(M, np.transpose(np.array([triangle.vertex_3.x, triangle.vertex_3.y, triangle.vertex_3.z]))))
+									 np.dot(M, np.transpose(np.array([triangle.vertex_3.x, triangle.vertex_3.y, triangle.vertex_3.z]))),
+									 np.dot(M, np.transpose(np.array(triangle.norm))))
 
 	def shift(self, dx, dy, dz):
 		for triangle in self.pointdata:
 			triangle.update_triangle([triangle.vertex_1.x + dx, triangle.vertex_1.y + dy, triangle.vertex_1.z + dz],
 									 [triangle.vertex_2.x + dx, triangle.vertex_2.y + dy, triangle.vertex_2.z + dz],
-									 [triangle.vertex_3.x + dx, triangle.vertex_3.y + dy, triangle.vertex_3.z + dz])
-
+									 [triangle.vertex_3.x + dx, triangle.vertex_3.y + dy, triangle.vertex_3.z + dz],
+									 triangle.norm)
 
 class PillBox:
 	def __init__(self, color):
@@ -401,15 +418,15 @@ def draw():
 	glBegin(GL_TRIANGLES)
 	#
 	glColor4f(blue_pill_box.base.color[0], blue_pill_box.base.color[1], blue_pill_box.base.color[2], blue_pill_box.base.color[3])
-	# for triangle in blue_pill_box.base.pointdata:
-	# 	glVertex3f(triangle.vertex_1.x/k, triangle.vertex_1.y/k, triangle.vertex_1.z/k)
-	# 	glVertex3f(triangle.vertex_2.x/k, triangle.vertex_2.y/k, triangle.vertex_2.z/k)
-	# 	glVertex3f(triangle.vertex_3.x/k, triangle.vertex_3.y/k, triangle.vertex_3.z/k)
-	#
-	# for triangle in blue_pill_box.cap.pointdata:
-	# 	glVertex3f(triangle.vertex_1.x / k, triangle.vertex_1.y / k, triangle.vertex_1.z / k)
-	# 	glVertex3f(triangle.vertex_2.x / k, triangle.vertex_2.y / k, triangle.vertex_2.z / k)
-	# 	glVertex3f(triangle.vertex_3.x / k, triangle.vertex_3.y / k, triangle.vertex_3.z / k)
+	for triangle in blue_pill_box.base.pointdata:
+		glVertex3f(triangle.vertex_1.x/k, triangle.vertex_1.y/k, triangle.vertex_1.z/k)
+		glVertex3f(triangle.vertex_2.x/k, triangle.vertex_2.y/k, triangle.vertex_2.z/k)
+		glVertex3f(triangle.vertex_3.x/k, triangle.vertex_3.y/k, triangle.vertex_3.z/k)
+
+	for triangle in blue_pill_box.cap.pointdata:
+		glVertex3f(triangle.vertex_1.x / k, triangle.vertex_1.y / k, triangle.vertex_1.z / k)
+		glVertex3f(triangle.vertex_2.x / k, triangle.vertex_2.y / k, triangle.vertex_2.z / k)
+		glVertex3f(triangle.vertex_3.x / k, triangle.vertex_3.y / k, triangle.vertex_3.z / k)
 
 	for triangle in blue_pill_box.lock.pointdata:
 		glVertex3f(triangle.vertex_1.x / k, triangle.vertex_1.y / k, triangle.vertex_1.z / k)
