@@ -1,11 +1,12 @@
 from OpenGL.GL import *
+from OpenGL.GLU import *
 from OpenGL.GLUT import *
 import numpy as np
 import math as m
 
 
 # параметры
-k = 100 # масштабировние
+k = 40 # масштабировние
 mul = 10 # коэффициент массштабирования
 w = 3 * mul
 h = 2 * mul
@@ -14,9 +15,14 @@ k_round = mul // 2
 a = mul
 b = (mul + k_round)
 
+
 r = lambda x, y:  m.sqrt(x ** 2 + y ** 2)
 
+lightPos = [0., 0., 1.] # координаты источника света
+lightColor = [1., 1., 1.] # цвет света
+lightStrength = 1.0 # яркость света
 
+view_angle = 0
 
 class Vertex:
 	def __init__(self, x = 0., y = 0., z = 0.):
@@ -29,12 +35,21 @@ class Vertex:
 		self.y = y
 		self.z = z
 
+	def get_list(self):
+		return [self.x, self.y, self.z]
+
+	def __str__(self):
+		return '[' + str(self.x) + ', ' + str(self.y) + ', ' + str(self.z) + ']'
+
 class Triangle:
 	def __init__(self, vertex_1, vertex_2, vertex_3):
 		self.vertex_1 = vertex_1
 		self.vertex_2 = vertex_2
 		self.vertex_3 = vertex_3
 		self.norm = [0., 0., 0.]
+
+	def __str__(self):
+		return 'triangle:\n\t' + str(self.vertex_1) + '\n\t' + str(self.vertex_2) + '\n\t' + str(self.vertex_3)
 
 	def update_triangle(self, v1, v2, v3, norm):
 		self.vertex_1.update_vertex(v1[0], v1[1], v1[2])
@@ -43,18 +58,45 @@ class Triangle:
 		self.norm = norm
 
 	def define_normal(self):
+		# print('define_normals')
 		norm = [
 			(self.vertex_2.y - self.vertex_1.y) * (self.vertex_3.z - self.vertex_1.z) -
 			(self.vertex_2.z - self.vertex_1.z) * (self.vertex_3.y - self.vertex_1.y),
+
 			(self.vertex_2.x - self.vertex_1.x) * (self.vertex_3.z - self.vertex_1.z) -
 			(self.vertex_2.z - self.vertex_1.z) * (self.vertex_3.x - self.vertex_1.x),
+
 			(self.vertex_2.x - self.vertex_1.x) * (self.vertex_3.y - self.vertex_1.y) -
 			(self.vertex_2.y - self.vertex_1.y) * (self.vertex_3.x - self.vertex_1.x),
 		]
+		a1 =[0.0, 0.0, 0.0]
+		a2 =[0.0, 0.0, 0.0]
+		v1 = self.vertex_1.get_list()
+		v2 = self.vertex_2.get_list()
+		v3 = self.vertex_3.get_list()
+		for i in range(3):
+			a1[i] = v1[i] - v2[i]
+			a2[i] = v1[i] - v3[i]
+		norm[0] = -(a1[1]*a2[2] - a1[2]*a2[1])
+		norm[1] = -(a1[2]*a2[0] - a1[0]*a2[2])
+		norm[2] = -(a1[0]*a2[1] - a1[1]*a2[0])
+		# print('norm:', norm)
 		length = m.sqrt(norm[0] * norm[0] + norm[1] * norm[1] + norm[2] * norm[2])
+		if(length == 0):
+			print('error', self.norm)
+			# print(self.vertex_1)
+			# print(self.vertex_2)
+			# print(self.vertex_3)
+			length = 1
 		for i in range(3):
 			norm[i] = norm[i] / length
+		# print(norm)
+		# if abs(norm[2]) == 1:
+			# print('ERROR!')
+		# print(self)
+
 		self.norm = norm
+
 
 
 class Figure:
@@ -63,11 +105,23 @@ class Figure:
 		self.color = color
 
 	def add_pointdata(self, triangle):
+		triangle.define_normal()
 		self.pointdata.append(triangle)
+
+	def __str__(self):
+		str = ''
+		for i in self.pointdata:
+			str = str + i
+		return str
 
 
 
 	def generate_figure(self, v1, v2_1, v3, v2_2):
+		# print('generate_fig:')
+		# print(v1)
+		# print(v2_1)
+		# print(v3)
+		# print(v2_2)
 		vertex_1 = Vertex(v1[0], v1[1], v1[2])
 		vertex_2 = Vertex(v2_1[0], v2_1[1], v2_1[2])
 		vertex_3 = Vertex(v3[0], v3[1], v3[2])
@@ -164,7 +218,8 @@ class Pill:
 
 
 
-blue_pill_box = PillBox([0., 0., 1., 1.])
+b_color = [70/255, 70/255, 1, 0.5]
+blue_pill_box = PillBox(b_color)
 white_pill_box = PillBox([1., 1., 1., 1.])
 pills = []
 
@@ -231,17 +286,23 @@ def create__pill_box():
 	# полуокружность co скруглением
 	radius = h // 2 + k_round
 	delta_r = radius / (2 * levels)
-	round_circle = lambda r: max(0., np.sign(r - delta) * round((r - delta)))
-
+	round_circle = lambda r: max(0., np.sign(r - delta) *  round((r - delta)))
+	k = 0
 	for i in range(2 * levels):
+		if i == (2 * levels) - 1: continue
 		delta_y_low = 2 * m.sqrt(radius ** 2 - (delta_r * i) ** 2) / h
 		delta_y_high = 2 * m.sqrt(radius ** 2 - (delta_r * (i + 1)) ** 2) / h
 
 		for j in range(h // 2):
-			blue_pill_box.base.generate_figure([-delta_r * i, delta_y_low * j, round_circle(r(delta_r * i, delta_y_low * j))],
-											   [-delta_r * i, delta_y_low * (j + 1), round_circle(r(delta_r * i, delta_y_low * (j + 1)))],
-											   [-delta_r * (i + 1), delta_y_high * (j + 1), round_circle(r(delta_r * (i + 1), delta_y_high * (j + 1)))],
-											   [-delta_r * (i + 1), delta_y_high * j, round_circle(r(delta_r * (i + 1), delta_y_high * j))])
+			# print(k, i, j)
+			k = k + 1
+			blue_pill_box.base.generate_figure(
+[-delta_r * i, delta_y_low * j, round_circle(r(delta_r * i, delta_y_low * j))],
+[-delta_r * i, delta_y_low * (j + 1), round_circle(r(delta_r * i, delta_y_low * (j + 1)))],
+
+[-delta_r * (i + 1), delta_y_high * (j + 1), round_circle(r(delta_r * (i + 1), delta_y_high * (j + 1)))],
+
+[-delta_r * (i + 1), delta_y_high * j, round_circle(r(delta_r * (i + 1), delta_y_high * j))])
 
 	# стенки полуокружности
 	coord = lambda x: m.sqrt(radius ** 2 - x ** 2)
@@ -280,7 +341,7 @@ def create__pill_box():
 
 	# овал
 	delta_r = b / levels
-	for i in range(levels):
+	for i in range(levels - 1):
 		delta_y_low = a * m.sqrt(1. - (delta_r * i / b) ** 2) / levels
 		delta_y_high = a * m.sqrt(1. - (delta_r * (i + 1) / b) ** 2) / levels
 		# поверхность
@@ -306,97 +367,97 @@ def create__pill():
 	pill = Pill([0., 1., 0., 1.], [0., 0., 0., 1.])
 
 	# четвертинка поверхности таблетки
-	for i in range(levels):
-		delta_y_low = m.sqrt(radius ** 2 - (delta_r * i) ** 2) / levels
-		delta_y_high = m.sqrt(radius ** 2 - (delta_r * (i + 1)) ** 2) / levels
+	# for i in range(levels):
+	# 	delta_y_low = m.sqrt(radius ** 2 - (delta_r * i) ** 2) / levels
+	# 	delta_y_high = m.sqrt(radius ** 2 - (delta_r * (i + 1)) ** 2) / levels
+	#
+	# 	# поверхность
+	# 	for j in range(levels):
+	# 		pill.cover.generate_figure([delta_r * i, delta_y_low * j, m.sqrt(radius ** 2 - r(delta_r * i, delta_y_low * j) ** 2) / 2],
+	# 								   [delta_r * i, delta_y_low * (j + 1), m.sqrt(radius ** 2 - r(delta_r * i, delta_y_low * (j + 1)) ** 2) / 2],
+	# 								   [delta_r * (i + 1), delta_y_high * (j + 1), m.sqrt(radius ** 2 - r(delta_r * (i + 1), delta_y_high * (j + 1)) ** 2) / 2],
+	# 								   [delta_r * (i + 1), delta_y_high * j, m.sqrt(radius ** 2 - r(delta_r * (i + 1), delta_y_high * j) ** 2) / 2])
 
-		# поверхность
-		for j in range(levels):
-			pill.cover.generate_figure([delta_r * i, delta_y_low * j, m.sqrt(radius ** 2 - r(delta_r * i, delta_y_low * j) ** 2) / 2],
-									   [delta_r * i, delta_y_low * (j + 1), m.sqrt(radius ** 2 - r(delta_r * i, delta_y_low * (j + 1)) ** 2) / 2],
-									   [delta_r * (i + 1), delta_y_high * (j + 1), m.sqrt(radius ** 2 - r(delta_r * (i + 1), delta_y_high * (j + 1)) ** 2) / 2],
-									   [delta_r * (i + 1), delta_y_high * j, m.sqrt(radius ** 2 - r(delta_r * (i + 1), delta_y_high * j) ** 2) / 2])
-
-	pill.cover.add_half_y()
-	pill.cover.add_half_z()
+	# pill.cover.add_half_y()
+	# pill.cover.add_half_z()
 
 	# разрез
-	for i in range(levels):
-		delta_y_low = m.sqrt(radius ** 2 - (delta_r * i) ** 2) / (2 * levels)
-		delta_y_high = m.sqrt(radius ** 2 - (delta_r * (i + 1)) ** 2) / (2 * levels)
+	# for i in range(levels):
+	# 	delta_y_low = m.sqrt(radius ** 2 - (delta_r * i) ** 2) / (2 * levels)
+	# 	delta_y_high = m.sqrt(radius ** 2 - (delta_r * (i + 1)) ** 2) / (2 * levels)
+	#
+	# 	# поверхность
+	# 	for j in range(levels):
+	# 		pill.cross_section.generate_figure([0., delta_r * i, delta_y_low * j],
+	# 								   [0., delta_r * i, delta_y_low * (j + 1)],
+	# 								   [0., delta_r * (i + 1), delta_y_high * (j + 1)],
+	# 								   [0., delta_r * (i + 1), delta_y_high * j])
 
-		# поверхность
-		for j in range(levels):
-			pill.cross_section.generate_figure([0., delta_r * i, delta_y_low * j],
-									   [0., delta_r * i, delta_y_low * (j + 1)],
-									   [0., delta_r * (i + 1), delta_y_high * (j + 1)],
-									   [0., delta_r * (i + 1), delta_y_high * j])
-
-	pill.cross_section.add_half_y()
-	pill.cross_section.add_half_z()
+	# pill.cross_section.add_half_y()
+	# pill.cross_section.add_half_z()
 	return pill
 
 
 def generate_scene():
 	create__pill_box()
 
-	# копируем в прозрачную
-	blue_pill_box.base.copy(white_pill_box.base)
-	blue_pill_box.cap.copy(white_pill_box.cap)
-	blue_pill_box.lock.copy(white_pill_box.lock)
-
-	# поворачиваем крышку
-	blue_pill_box.cap.rotate(90, 1) # -90 ???
-	blue_pill_box.cap.rotate(180, 2)
-	# смещаем крышку
-	blue_pill_box.cap.shift(2*b + w, 0., mul + k_round+w)
-	# замок
-	blue_pill_box.lock.rotate(90, 1) # -90 ???
-	blue_pill_box.lock.shift(mul + w, 0., mul)
-
-	# поворачиваем крышку
-	white_pill_box.cap.rotate(180, 0)  # -90 ???
-	# смещаем крышку
-	white_pill_box.cap.shift(0., 0., mul + k_round)
-	# замок
-	# white_pill_box.lock.shift(w, 0., 0.)
-
-	# поворачиваем и смещаем целиком
-	white_pill_box.rotate(30, 2)
-	white_pill_box.shift(0., 100., 0.)
-
-	pill = create__pill()
-
-	for i in range(8):
-		new_pill = Pill([0., 1., 0., 1.], [0., 0., 0., 1.])
-		pill.cover.copy(new_pill.cover)
-		if(i <= 2):
-			pill.cross_section.copy(new_pill.cross_section)
-		pills.append(new_pill)
-
-	pills[0].rotate(30, 2)
-	pills[0].shift(0., 0., mul / 2)
-
-	pills[1].rotate(180, 2)
-	pills[1].shift(10, 0., mul / 2)
-
-	pills[2].rotate(90, 2)
-	pills[2].shift(40, 30, mul / 2)
-
-	pills[3].rotate(45, 2)
-	pills[3].shift(40, 20, mul / 2)
-
-	pills[4].rotate(180, 2)
-	pills[4].shift(30, 70., mul / 2)
-
-	#pills[5].rotate(30, 2)
-	pills[5].shift(30, 70., mul / 2)
-
-	pills[6].rotate(180, 2)
-	pills[6].shift(40, 70., mul / 2)
-
-	# pills[7].rotate(30, 2)
-	pills[7].shift(40, 70., mul / 2)
+	# # копируем в прозрачную
+	# blue_pill_box.base.copy(white_pill_box.base)
+	# blue_pill_box.cap.copy(white_pill_box.cap)
+	# blue_pill_box.lock.copy(white_pill_box.lock)
+	#
+	# # поворачиваем крышку
+	# blue_pill_box.cap.rotate(90, 1) # -90 ???
+	# blue_pill_box.cap.rotate(180, 2)
+	# # смещаем крышку
+	# blue_pill_box.cap.shift(2*b + w, 0., mul + k_round+w)
+	# # замок
+	# blue_pill_box.lock.rotate(90, 1) # -90 ???
+	# blue_pill_box.lock.shift(mul + w, 0., mul)
+	#
+	# # поворачиваем крышку
+	# white_pill_box.cap.rotate(180, 0)  # -90 ???
+	# # смещаем крышку
+	# white_pill_box.cap.shift(0., 0., mul + k_round)
+	# # замок
+	# # white_pill_box.lock.shift(w, 0., 0.)
+	#
+	# # поворачиваем и смещаем целиком
+	# white_pill_box.rotate(30, 2)
+	# white_pill_box.shift(0., 100., 0.)
+	#
+	# pill = create__pill()
+	#
+	# for i in range(8):
+	# 	new_pill = Pill([0., 1., 0., 1.], [0., 0., 0., 1.])
+	# 	pill.cover.copy(new_pill.cover)
+	# 	if(i <= 2):
+	# 		pill.cross_section.copy(new_pill.cross_section)
+	# 	pills.append(new_pill)
+	#
+	# pills[0].rotate(30, 2)
+	# pills[0].shift(0., 0., mul / 2)
+	#
+	# pills[1].rotate(180, 2)
+	# pills[1].shift(10, 0., mul / 2)
+	#
+	# pills[2].rotate(90, 2)
+	# pills[2].shift(40, 30, mul / 2)
+	#
+	# pills[3].rotate(45, 2)
+	# pills[3].shift(40, 20, mul / 2)
+	#
+	# pills[4].rotate(180, 2)
+	# pills[4].shift(30, 70., mul / 2)
+	#
+	# #pills[5].rotate(30, 2)
+	# pills[5].shift(30, 70., mul / 2)
+	#
+	# pills[6].rotate(180, 2)
+	# pills[6].shift(40, 70., mul / 2)
+	#
+	# # pills[7].rotate(30, 2)
+	# pills[7].shift(40, 70., mul / 2)
 
 
 def create_shader(shader_type, source):
@@ -407,31 +468,54 @@ def create_shader(shader_type, source):
 
 # Процедура перерисовки
 def draw():
+	global view_angle
+	print('DRAW')
+	var = glGetUniformLocation(program, 'lightPos')
+	glUniform3f(var, lightPos[0], lightPos[1], lightPos[2])
+	var = glGetUniformLocation(program, 'lightColor')
+	glUniform3f(var, lightColor[0], lightColor[1], lightColor[2])
+	var = glGetUniformLocation(program, 'lightStrength')
+	glUniform1f(var, lightStrength)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
+	glPushMatrix()
+	gluLookAt(
+		m.cos(view_angle), m.sin(view_angle), 0.5,
+		0, 0, 0,
+		0, 0, 1
+		)
+	glMatrixMode(GL_PROJECTION)
+	glLoadIdentity()
+	glOrtho(-1.0, 1.0, -1, 1, -1, 1000.0)
+	# glFrustum(-.1, .1, -.1, .1, 0.1, 100.0);
+	glMatrixMode(GL_MODELVIEW)
+	# glTranslate(0.0, 0.0, -1.0)
 	# TODO: нарисовать бесконечную белую плоскость
 
-	glLineWidth(5)
+	# glLineWidth(5)
 	glEnable(GL_DEPTH_TEST)
-	glDepthFunc(GL_LESS)
+	# glDepthFunc(GL_LESS)
 
 	glBegin(GL_TRIANGLES)
 	#
 	glColor4f(blue_pill_box.base.color[0], blue_pill_box.base.color[1], blue_pill_box.base.color[2], blue_pill_box.base.color[3])
 	for triangle in blue_pill_box.base.pointdata:
+		# print(triangle.norm)
+		glNormal3f(triangle.norm[0], triangle.norm[1], triangle.norm[2])
 		glVertex3f(triangle.vertex_1.x/k, triangle.vertex_1.y/k, triangle.vertex_1.z/k)
+		glNormal3f(triangle.norm[0], triangle.norm[1], triangle.norm[2])
 		glVertex3f(triangle.vertex_2.x/k, triangle.vertex_2.y/k, triangle.vertex_2.z/k)
+		glNormal3f(triangle.norm[0], triangle.norm[1], triangle.norm[2])
 		glVertex3f(triangle.vertex_3.x/k, triangle.vertex_3.y/k, triangle.vertex_3.z/k)
 
-	for triangle in blue_pill_box.cap.pointdata:
-		glVertex3f(triangle.vertex_1.x / k, triangle.vertex_1.y / k, triangle.vertex_1.z / k)
-		glVertex3f(triangle.vertex_2.x / k, triangle.vertex_2.y / k, triangle.vertex_2.z / k)
-		glVertex3f(triangle.vertex_3.x / k, triangle.vertex_3.y / k, triangle.vertex_3.z / k)
-
-	for triangle in blue_pill_box.lock.pointdata:
-		glVertex3f(triangle.vertex_1.x / k, triangle.vertex_1.y / k, triangle.vertex_1.z / k)
-		glVertex3f(triangle.vertex_2.x / k, triangle.vertex_2.y / k, triangle.vertex_2.z / k)
-		glVertex3f(triangle.vertex_3.x / k, triangle.vertex_3.y / k, triangle.vertex_3.z / k)
+	# for triangle in blue_pill_box.cap.pointdata:
+	# 	glVertex3f(triangle.vertex_1.x / k, triangle.vertex_1.y / k, triangle.vertex_1.z / k)
+	# 	glVertex3f(triangle.vertex_2.x / k, triangle.vertex_2.y / k, triangle.vertex_2.z / k)
+	# 	glVertex3f(triangle.vertex_3.x / k, triangle.vertex_3.y / k, triangle.vertex_3.z / k)
+	#
+	# for triangle in blue_pill_box.lock.pointdata:
+	# 	glVertex3f(triangle.vertex_1.x / k, triangle.vertex_1.y / k, triangle.vertex_1.z / k)
+	# 	glVertex3f(triangle.vertex_2.x / k, triangle.vertex_2.y / k, triangle.vertex_2.z / k)
+	# 	glVertex3f(triangle.vertex_3.x / k, triangle.vertex_3.y / k, triangle.vertex_3.z / k)
 
 	# glColor4f(0., 0., 0., 1.)
 	# # glColor4f(white_pill_box.base.color[0], white_pill_box.base.color[1], white_pill_box.base.color[2], white_pill_box.base.color[3])
@@ -450,19 +534,26 @@ def draw():
 	# 	glVertex3f(triangle.vertex_2.x / k, triangle.vertex_2.y / k, triangle.vertex_2.z / k)
 	# 	glVertex3f(triangle.vertex_3.x / k, triangle.vertex_3.y / k, triangle.vertex_3.z / k)
 
+
 	# glColor4f(pills[0].cover.color[0], pills[0].cover.color[1], pills[0].cover.color[2], pills[0].cover.color[3])
 	# for pill in pills:
 	# 	for triangle in pill.cover.pointdata:
+	# 		glNormal3f(triangle.norm[0], triangle.norm[1], triangle.norm[0])
 	# 		glVertex3f(triangle.vertex_1.x / k, triangle.vertex_1.y / k, triangle.vertex_1.z / k)
+	# 		glNormal3f(triangle.norm[0], triangle.norm[1], triangle.norm[0])
 	# 		glVertex3f(triangle.vertex_2.x / k, triangle.vertex_2.y / k, triangle.vertex_2.z / k)
+	# 		glNormal3f(triangle.norm[0], triangle.norm[1], triangle.norm[0])
 	# 		glVertex3f(triangle.vertex_3.x / k, triangle.vertex_3.y / k, triangle.vertex_3.z / k)
-	#
+	# #
 	# glColor4f(pills[0].cross_section.color[0], pills[0].cross_section.color[1], pills[0].cross_section.color[2],
 	# 		  pills[0].cross_section.color[3])
 	# for pill in pills:
 	# 	for triangle in pill.cross_section.pointdata:
+	# 		glNormal3f(triangle.norm[0], triangle.norm[1], triangle.norm[0])
 	# 		glVertex3f(triangle.vertex_1.x / k, triangle.vertex_1.y / k, triangle.vertex_1.z / k)
+	# 		glNormal3f(triangle.norm[0], triangle.norm[1], triangle.norm[0])
 	# 		glVertex3f(triangle.vertex_2.x / k, triangle.vertex_2.y / k, triangle.vertex_2.z / k)
+	# 		glNormal3f(triangle.norm[0], triangle.norm[1], triangle.norm[0])
 	# 		glVertex3f(triangle.vertex_3.x / k, triangle.vertex_3.y / k, triangle.vertex_3.z / k)
 
 	glEnd()
@@ -483,55 +574,91 @@ def draw():
 	glVertex3f(0., 0., 0.)
 	glVertex3f(0., 0., 1.)
 	glEnd()
-
+	glPopMatrix()
 	glutSwapBuffers()  # Выводим все нарисованное в памяти на экран
 
 
 def specialkeys(key, x, y):
+	global view_angle
+	global lightPos
 	if key == GLUT_KEY_UP:		  # Клавиша вверх
-		glRotatef(5, 1, 0, 0)	   # Вращаем на 5 градусов по оси X
+		lightPos[0] = lightPos[0] + 0.1
+		if lightPos[0] >= 1:
+			lightPos[0] = 0.99
 	if key == GLUT_KEY_DOWN:		# Клавиша вниз
-		glRotatef(-5, 1, 0, 0)	  # Вращаем на -5 градусов по оси X
+		lightPos[0] = lightPos[0] - 0.1
+		if lightPos[0] <= -1:
+			lightPos[0] = -0.99
 	if key == GLUT_KEY_LEFT:		# Клавиша влево
-		glRotatef(5, 0, 1, 0)	   # Вращаем на 5 градусов по оси Y
+		lightPos[1] = lightPos[1] + 0.1
+		if lightPos[1] >= 1:
+			lightPos[1] = 0.99
 	if key == GLUT_KEY_RIGHT:	   # Клавиша вправо
-		glRotatef(-5, 0, 1, 0)	  # Вращаем на -5 градусов по оси Y
+		lightPos[1] = lightPos[1] - 0.1
+		if lightPos[1] <= -1:
+			lightPos[1] = -0.99
 	glutPostRedisplay()
+
+
+prev_position = None
+mouse_clicked = False
+
+def mouse_move(x, y):
+	global view_angle
+	global prev_position
+	global mouse_clicked
+	global mouse_buffer
+	print(x,y)
+	if mouse_clicked:
+		view_angle = view_angle + (prev_position - x) / 500
+		prev_position = x
+		glutPostRedisplay()
+
+
+
+def mouse_click(button, state, x, y):
+	global mouse_clicked
+	global prev_position
+	if button == 0:
+		if state == 0:
+			mouse_clicked = True
+			prev_position = x
+		elif state == 1:
+			mouse_clicked = False
+		print(button, state, x, y)
+
 
 
 
 # Здесь начинется выполнение программы
-glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA)
+glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
 glutInitWindowSize(500, 500)
 glutInitWindowPosition(500, 200)
 glutInit(sys.argv)
 glutCreateWindow("KR")
 glutDisplayFunc(draw)
-glutIdleFunc(draw)
+# glutIdleFunc(draw)
 glutSpecialFunc(specialkeys)
 glClearColor(1., 1., 1., 1)
 generate_scene()
 # Создаем вершинный шейдер:
-vertex = create_shader(GL_VERTEX_SHADER, """
-varying vec4 vertex_color;
-            void main(){
-                vec4 point = gl_Vertex;
-				gl_Position = gl_ModelViewProjectionMatrix * point;
-				vec4 color=gl_Color;
-                vertex_color = color;
-            }""")
 # Создаем фрагментный шейдер:
 fragment = create_shader(GL_FRAGMENT_SHADER, """
 varying vec4 vertex_color;
             void main() {
                 gl_FragColor = vertex_color;
+                // gl_FragColor = vertex_color * 10.0;
 }""")
 program = glCreateProgram()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+vertex = create_shader(GL_VERTEX_SHADER, open(os.path.join(BASE_DIR, 'v_shader.glsl'), 'r').read())
+fragment = create_shader(GL_FRAGMENT_SHADER, open(os.path.join(BASE_DIR, 'f_shader.glsl'), 'r').read())
 glAttachShader(program, vertex)
 glAttachShader(program, fragment)
 glLinkProgram(program)
 glUseProgram(program)
+glutMotionFunc(mouse_move)
+glutMouseFunc(mouse_click)
 glEnableClientState(GL_VERTEX_ARRAY)
 glEnableClientState(GL_COLOR_ARRAY)
 glutMainLoop()
-
