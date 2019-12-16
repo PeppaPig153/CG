@@ -1,15 +1,57 @@
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from OpenGL.GLU import *
+import sys
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow, QComboBox, QSlider, QLabel
+from PyQt5.QtOpenGL import QGLWidget, QGLFormat, QGL
+import OpenGL.GL as gl
 
-width, height = 400, 400
-
-# прозрачность для каждого треугольника
+canvas_width = 400
+canvas_height = 400
+window_width = int(canvas_width * 1.61803398875)
+window_height = canvas_height
 alpha_1 = 0.9
 alpha_2 = 0.3
 alpha_3 = 0.6
 
-# формат точки: (координата x, координата y, красный цвет, зеленый цвет, синий цвет, прозрачность)
+test_options = {
+	'GL_SCISSOR_TEST': gl.GL_SCISSOR_TEST,
+	'GL_ALPHA_TEST': gl.GL_ALPHA_TEST,
+	'GL_BLEND': gl.GL_BLEND,
+}
+
+func_options = {
+	'GL_NEVER': gl.GL_NEVER, # – никогда не пропускает
+	'GL_LESS': gl.GL_LESS, # – пропускает, если входное значение альфа меньше, чем значение ref
+	'GL_EQUAL': gl.GL_EQUAL, # – пропускает, если входное значение альфа равно значению ref
+	'GL_LEQUAL': gl.GL_EQUAL, # – пропускает, если входное значение альфа меньше или равно значения ref
+	'GL_GREATER': gl.GL_GREATER, # – пропускает, если входное значение альфа больше, чем значение ref
+	'GL_NOTEQUAL': gl.GL_NOTEQUAL, # – пропускает, если входное значение альфа не равно значению ref
+	'GL_GEQUAL': gl.GL_GEQUAL, # – пропускает, если входное значение альфа больше или равно значения ref
+	'GL_ALWAYS': gl.GL_ALWAYS, # – всегда пропускается, по умолчанию
+}
+
+sfactor_options = {
+	'GL_ZERO': gl.GL_ZERO,
+	'GL_ONE': gl.GL_ONE,
+	'GL_DST_COLOR': gl.GL_DST_COLOR,
+	'GL_ONE_MINUS_DST_COLOR': gl.GL_ONE_MINUS_DST_COLOR,
+	'GL_SRC_ALPHA': gl.GL_SRC_ALPHA,
+	'GL_ONE_MINUS_SRC_ALPHA': gl.GL_ONE_MINUS_SRC_ALPHA,
+	'GL_DST_ALPHA': gl.GL_DST_ALPHA,
+	'GL_ONE_MINUS_DST_ALPHA': gl.GL_ONE_MINUS_DST_ALPHA,
+	'GL_SRC_ALPHA_SATURATE': gl.GL_SRC_ALPHA_SATURATE,
+}
+
+dfactor_options = {
+	'GL_ZERO': gl.GL_ZERO,
+	'GL_ONE': gl.GL_ZERO,
+	'GL_SRC_COLOR': gl.GL_SRC_COLOR,
+	'GL_ONE_MINUS_SRC_COLOR': gl.GL_ONE_MINUS_SRC_COLOR,
+	'GL_SRC_ALPHA': gl.GL_SRC_ALPHA,
+	'GL_ONE_MINUS_SRC_ALPHA': gl.GL_ONE_MINUS_SRC_ALPHA,
+	'GL_DST_ALPHA': gl.GL_ONE_MINUS_SRC_ALPHA,
+	'GL_ONE_MINUS_DST_ALPHA': gl.GL_ONE_MINUS_DST_ALPHA,
+}
+
 verticies = (
     (-0.4, 0.9, 255, 0, 0, alpha_1),
     (0.4, 0.9, 255, 0, 0, alpha_1),
@@ -22,66 +64,172 @@ verticies = (
     (0.9, 0.0, 0, 0, 255, alpha_3)
 )
 
-test = GL_SCISSOR_TEST
-#GL_SCISSOR_TEST
-#GL_ALPHA_TEST
-#GL_BLEND
+class GLWidget(QGLWidget):
+	def __init__(self, parent):
+		super(GLWidget, self).__init__(QGLFormat(QGL.SampleBuffers), parent)
+		self.test_option = gl.GL_SCISSOR_TEST
+		self.func_option = gl.GL_GREATER
+		self.sfactor_option = gl.GL_SRC_ALPHA
+		self.dfactor_option = gl.GL_ONE_MINUS_SRC_ALPHA
+		self.ref = 0.2
+		self.move(0, 0)
+		self.resize(canvas_width, canvas_height)
 
-ref = 0.2 # определяет значение, с которым сравнивается входное значение альфа при тестировании прозрачности
-func = GL_GREATER
-#GL_NEVER – никогда не пропускает
-#GL_LESS – пропускает, если входное значение альфа меньше, чем значение ref
-#GL_EQUAL – пропускает, если входное значение альфа равно значению ref
-#GL_LEQUAL – пропускает, если входное значение альфа меньше или равно значения ref
-#GL_GREATER – пропускает, если входное значение альфа больше, чем значение ref
-#GL_NOTEQUAL – пропускает, если входное значение альфа не равно значению ref
-#GL_GEQUAL – пропускает, если входное значение альфа больше или равно значения ref
-#GL_ALWAYS – всегда пропускается, по умолчанию
+	def update_test_optin(self, opt):
+		self.test_option = opt
 
-sfactor = GL_SRC_ALPHA # задает метод вычисления фактора наложения источника при тестировании смешания цветов
-#GL_ZERO
-#GL_ONE
-#GL_DST_COLOR
-#GL_ONE_MINUS_DST_COLOR
-#GL_SRC_ALPHA
-#GL_ONE_MINUS_SRC_ALPHA
-#GL_DST_ALPHA
-#GL_ONE_MINUS_DST_ALPHA
-#GL_SRC_ALPHA_SATURATE
-dfactor = GL_ONE_MINUS_SRC_ALPHA # задает метод вычисления фактора наложения приемника при тестировании смешания цветов
-#GL_ZERO
-#GL_ONE
-#GL_SRC_COLOR
-#GL_ONE_MINUS_SRC_COLOR
-#GL_SRC_ALPHA
-#GL_ONE_MINUS_SRC_ALPHA
-#GL_DST_ALPHA
-#GL_ONE_MINUS_DST_ALPHA
+	def update_func_optin(self, opt):
+		self.func_option = opt
 
-def draw_test():
-    glClear(GL_COLOR_BUFFER_BIT)
+	def update_sfactor_optin(self, opt):
+		self.sfactor_option = opt
 
-    if (test == GL_SCISSOR_TEST): # тест отсечения
-        glScissor(0, 0, 300, 300)
-    if (test == GL_ALPHA_TEST): # тест прозрачности
-        glAlphaFunc(func, ref)
-    if (test == GL_BLEND): # тест смешивания цветов
-        glBlendFunc(sfactor, dfactor)
+	def update_dfactor_optin(self, opt):
+		self.dfactor_option = opt
 
-    glEnable(test)
-    glBegin(GL_TRIANGLES)
-    for vertex in verticies:
-        glColor4f(vertex[2], vertex[3], vertex[4], vertex[5])
-        glVertex2f(vertex[0], vertex[1])
-    glEnd()
-    glDisable(test)
-    glFlush()
+	def update_ref_optin(self, opt):
+		self.ref = opt
 
-glutInit()
-glutInitDisplayMode(GLUT_RGBA)
-glutInitWindowSize(width, height)
-glutInitWindowPosition(200, 200)
-window = glutCreateWindow("Lab_2")
-test = GL_BLEND # установка нужного теста
-glutDisplayFunc(draw_test)
-glutMainLoop()
+	def draw(self):
+	    gl.glClear(gl.GL_COLOR_BUFFER_BIT)
+	    if (self.test_option == gl.GL_SCISSOR_TEST): # тест отсечения
+	        gl.glScissor(0, 0, 300, 300)
+	    if (self.test_option == gl.GL_ALPHA_TEST): # тест прозрачности
+	        gl.glAlphaFunc(self.func_option, self.ref)
+	    if (self.test_option == gl.GL_BLEND): # тест смешивания цветов
+	        gl.glBlendFunc(self.sfactor_option, self.dfactor_option)
+
+	    gl.glEnable(self.test_option)
+	    gl.glBegin(gl.GL_TRIANGLES)
+	    for vertex in verticies:
+	        gl.glColor4f(vertex[2], vertex[3], vertex[4], vertex[5])
+	        gl.glVertex2f(vertex[0], vertex[1])
+	    gl.glEnd()
+	    gl.glDisable(self.test_option)
+	    gl.glFlush()
+
+	def paintGL(self):
+		self.draw()
+
+class MainWindow(QMainWindow):
+	def __init__(self):
+		super(MainWindow, self).__init__()
+		widget_width = window_width - canvas_width - 20
+		centralWidget = QWidget()
+		self.setCentralWidget(centralWidget)
+		self.glWidget = GLWidget(self)
+
+		self.TestLabel = QLabel('Test', parent=centralWidget)
+		self.TestLabel.move(canvas_width + 10, 10)
+
+		self.comboBoxTest = QComboBox(centralWidget)
+		self.comboBoxTest.move(canvas_width + 10, 30)
+		self.comboBoxTest.resize(widget_width, self.comboBoxTest.height())
+		for item in test_options:
+			self.comboBoxTest.addItem(item)
+		self.comboBoxTest.currentTextChanged.connect(self.change_test_opt)
+
+		self.FuncLabel = QLabel('Func parapeter', parent=centralWidget)
+		self.FuncLabel.move(canvas_width + 10, 60)
+
+		self.comboBoxFunc = QComboBox(centralWidget)
+		self.comboBoxFunc.move(canvas_width + 10, 80)
+		self.comboBoxFunc.resize(widget_width, self.comboBoxFunc.height())
+		for item in func_options:
+			self.comboBoxFunc.addItem(item)
+		self.comboBoxFunc.currentTextChanged.connect(self.change_func_opt)
+
+		self.SFactorLabel = QLabel('Sfactor parapeter', parent=centralWidget)
+		self.SFactorLabel.move(canvas_width + 10, 60)
+
+		self.comboBoxSFactor = QComboBox(centralWidget)
+		self.comboBoxSFactor.move(canvas_width + 10, 80)
+		self.comboBoxSFactor.resize(widget_width, self.comboBoxSFactor.height())
+		for item in sfactor_options:
+			self.comboBoxSFactor.addItem(item)
+		self.comboBoxSFactor.currentTextChanged.connect(self.change_sfactor_opt)
+
+		self.DFactorLabel = QLabel('Dfactor parapeter', parent=centralWidget)
+		self.DFactorLabel.move(canvas_width + 10, 110)
+
+		self.comboBoxDFactor = QComboBox(centralWidget)
+		self.comboBoxDFactor.move(canvas_width + 10, 130)
+		self.comboBoxDFactor.resize(widget_width, self.comboBoxDFactor.height())
+		for item in dfactor_options:
+			self.comboBoxDFactor.addItem(item)
+		self.comboBoxDFactor.currentTextChanged.connect(self.change_dfactor_opt)
+
+		self.RefLabel = QLabel('Ref parapeter', parent=centralWidget)
+		self.RefLabel.move(canvas_width + 10, 110)
+
+		self.sliderRef = QSlider(Qt.Horizontal, parent=centralWidget)
+		self.sliderRef.setFocusPolicy(Qt.StrongFocus)
+		self.sliderRef.move(canvas_width + 10, 130)
+		self.sliderRef.resize(widget_width, self.sliderRef.height())
+		self.sliderRef.valueChanged.connect(self.change_ref_opt)
+
+
+		self.FuncLabel.hide()
+		self.comboBoxFunc.hide()
+		self.SFactorLabel.hide()
+		self.comboBoxSFactor.hide()
+		self.DFactorLabel.hide()
+		self.comboBoxDFactor.hide()
+		self.RefLabel.hide()
+		self.sliderRef.hide()
+
+		self.setWindowTitle("lab_2")
+		self.resize(window_width, window_height)
+
+	def change_test_opt(self, opt):
+		self.glWidget.update_test_optin(test_options[opt])
+		if opt == 'GL_SCISSOR_TEST':
+			self.FuncLabel.hide()
+			self.comboBoxFunc.hide()
+			self.SFactorLabel.hide()
+			self.comboBoxSFactor.hide()
+			self.DFactorLabel.hide()
+			self.comboBoxDFactor.hide()
+			self.RefLabel.hide()
+			self.sliderRef.hide()
+		elif opt == 'GL_ALPHA_TEST':
+			self.FuncLabel.show()
+			self.comboBoxFunc.show()
+			self.SFactorLabel.hide()
+			self.comboBoxSFactor.hide()
+			self.DFactorLabel.hide()
+			self.comboBoxDFactor.hide()
+			self.RefLabel.show()
+			self.sliderRef.show()
+		elif opt == 'GL_BLEND':
+			self.FuncLabel.hide()
+			self.comboBoxFunc.hide()
+			self.SFactorLabel.show()
+			self.comboBoxSFactor.show()
+			self.DFactorLabel.show()
+			self.comboBoxDFactor.show()
+			self.RefLabel.hide()
+			self.sliderRef.hide()
+		self.glWidget.update()
+
+	def change_func_opt(self, opt):
+		self.glWidget.update_func_optin(func_options[opt])
+		self.glWidget.update()
+
+	def change_sfactor_opt(self, opt):
+		self.glWidget.update_sfactor_optin(sfactor_options[opt])
+		self.glWidget.update()
+
+	def change_dfactor_opt(self, opt):
+		self.glWidget.update_dfactor_optin(dfactor_options[opt])
+		self.glWidget.update()
+
+	def change_ref_opt(self, opt):
+		self.glWidget.update_ref_optin(opt / 99)
+		self.glWidget.update()
+
+if __name__ == '__main__':
+	app = QApplication(sys.argv)
+	mainWin = MainWindow()
+	mainWin.show()
+	sys.exit(app.exec_())
